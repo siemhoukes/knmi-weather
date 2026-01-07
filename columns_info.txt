@@ -1,0 +1,81 @@
+# KNMI Daily Weather Data - Column Documentation
+# Source: Royal Netherlands Meteorological Institute (KNMI)
+#
+# Note: These time series are inhomogeneous due to station relocations and 
+# changes in observation techniques. Not suitable for trend analysis.
+# For climate studies, see: http://www.knmi.nl/kennis-en-datacentrum/achtergrond/centraal-nederland-temperatuur-cnt
+
+# All values are in 0.1 units unless noted otherwise
+# Divide by 10 to get actual values (this is done automatically by knmi_weather.py)
+
+## Date
+YYYYMMDD    Date (YYYY=year MM=month DD=day)
+
+## Wind
+DDVEC       Vector mean wind direction in degrees (360=north, 90=east, 180=south, 270=west, 0=calm/variable)
+FHVEC       Vector mean windspeed (0.1 m/s)
+FG          Daily mean windspeed (0.1 m/s)
+FHX         Maximum hourly mean windspeed (0.1 m/s)
+FHXH        Hour in which FHX was measured
+FHN         Minimum hourly mean windspeed (0.1 m/s)
+FHNH        Hour in which FHN was measured
+FXX         Maximum wind gust (0.1 m/s)
+FXXH        Hour in which FXX was measured
+
+## Temperature
+TG          Daily mean temperature (0.1 °C)
+TN          Minimum temperature (0.1 °C)
+TNH         Hour in which TN was measured
+TX          Maximum temperature (0.1 °C)
+TXH         Hour in which TX was measured
+T10N        Minimum temperature at 10 cm above surface (0.1 °C)
+T10NH       6-hourly division in which T10N was measured (6=0-6 UT, 12=6-12 UT, 18=12-18 UT, 24=18-24 UT)
+
+## Sunshine & Radiation
+SQ          Sunshine duration (0.1 hour), calculated from global radiation (-1 for <0.05 hour)
+SP          Percentage of maximum potential sunshine duration
+Q           Global radiation (J/cm²)
+
+## Precipitation
+DR          Precipitation duration (0.1 hour)
+RH          Daily precipitation amount (0.1 mm) (-1 for <0.05 mm)
+RHX         Maximum hourly precipitation amount (0.1 mm) (-1 for <0.05 mm)
+RHXH        Hour in which RHX was measured
+
+## Pressure
+PG          Daily mean sea level pressure (0.1 hPa), calculated from 24 hourly values
+PX          Maximum hourly sea level pressure (0.1 hPa)
+PXH         Hour in which PX was measured
+PN          Minimum hourly sea level pressure (0.1 hPa)
+PNH         Hour in which PN was measured
+
+## Visibility
+VVN         Minimum visibility (code: 0=<100m, 1=100-200m, ..., 49=4900-5000m, 50=5-6km, ..., 89=>70km)
+VVNH        Hour in which VVN was measured
+VVX         Maximum visibility (same coding as VVN)
+VVXH        Hour in which VVX was measured
+
+## Cloud cover & Humidity
+NG          Mean daily cloud cover (octants, 0-8, 9=sky invisible)
+UG          Daily mean relative humidity (%)
+UX          Maximum relative humidity (%)
+UXH         Hour in which UX was measured
+UN          Minimum relative humidity (%)
+UNH         Hour in which UN was measured
+
+## Evaporation
+EV24        Potential evapotranspiration - Makkink (0.1 mm)
+
+
+# Quick reference - most useful columns for energy analysis:
+#
+# | Code | knmi_weather.py output | Description                    |
+# |------|------------------------|--------------------------------|
+# | TG   | temp_avg               | Daily mean temperature (°C)    |
+# | TN   | temp_min               | Daily minimum temperature (°C) |
+# | TX   | temp_max               | Daily maximum temperature (°C) |
+# | SQ   | sun_duration           | Sunshine duration (hours)      |
+# | Q    | radiation              | Global radiation (J/cm²)       |
+# | RH   | precipitation          | Precipitation (mm)             |
+# | UG   | humidity               | Relative humidity (%)          |
+# | FG   | wind_speed             | Wind speed (m/s)               |

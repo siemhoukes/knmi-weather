@@ -1,0 +1,59 @@
+# KNMI Weather Stations
+# Format: ID | Name | Start Date | End Date
+#
+# Usage in knmi_weather.py:
+#   get_daily(station="260")        # De Bilt
+#   get_daily(station=["350", "380"], average=True)  # Average Gilze-Rijen & Maastricht
+
+209	IJmond	2001-01-30	2026-01-06
+210	Valkenburg Vk	1951-01-01	2016-05-04
+215	Voorschoten	2014-07-15	2026-01-06
+225	IJmuiden	1971-01-01	2026-01-06
+229	Texelhors	2017-12-13	2026-01-06
+235	De Kooy Airport	1906-01-01	2026-01-06
+240	Schiphol Airport	1951-01-01	2026-01-06
+242	Vlieland Vliehors	1996-01-01	2026-01-06
+248	Wijdenes	1994-07-15	2026-01-06
+249	Berkhout	1999-03-12	2026-01-06
+251	Hoorn Terschelling	1994-05-26	2026-01-06
+257	Wijk aan Zee	2001-04-30	2026-01-06
+258	Houtribdijk	2006-02-01	2026-01-06
+260	De Bilt	1901-01-01	2026-01-06
+265	Soesterberg	1951-09-01	2008-11-16
+267	Stavoren	1990-06-18	2026-01-06
+269	Lelystad Airport	1990-01-17	2026-01-06
+270	Leeuwarden Airport	1951-01-01	2026-01-06
+273	Marknesse	1989-01-01	2026-01-06
+275	Deelen Airport	1951-01-01	2026-01-06
+277	Lauwersoog	1991-03-18	2026-01-06
+278	Heino	1991-01-01	2026-01-06
+279	Hoogeveen	1989-09-26	2026-01-06
+280	Groningen Airport Eelde	1906-01-01	2026-01-06
+283	Hupsel	1989-10-16	2026-01-06
+285	Huibertgat	1981-01-01	2026-01-06
+286	Nieuw Beerta	1990-01-17	2026-01-06
+290	Twenthe Airport	1951-01-01	2026-01-06
+308	Cadzand	1972-01-01	2026-01-06
+310	Vlissingen	1906-01-01	2026-01-06
+311	Hoofdplaat	1997-01-31	2016-02-01
+312	Oosterschelde	1982-01-01	2026-01-06
+313	Vlakte van De Raan	1997-01-31	2026-01-06
+315	Hansweert	1997-01-31	2026-01-06
+316	Schaar	1983-01-01	2026-01-06
+319	Westdorpe	1991-06-25	2026-01-06
+323	Wilhelminadorp	2017-12-15	2026-01-06
+324	Stavenisse	1997-09-30	2026-01-06
+330	Hoek van Holland	1971-01-01	2026-01-06
+331	Tholen	1981-01-01	2026-01-05
+340	Woensdrecht Airport	1993-04-01	2026-01-06
+343	Rotterdam Geulhaven	1991-01-01	2026-01-06
+344	Rotterdam Airport	1956-10-01	2026-01-06
+348	Cabauw	1986-03-01	2026-01-06
+350	Gilze-Rijen Airport	1951-01-01	2026-01-06
+356	Herwijnen	1989-09-26	2026-01-06
+370	Eindhoven Airport	1951-01-01	2026-01-06
+375	Volkel	1951-02-01	2026-01-06
+377	Ell	1999-05-01	2026-01-06
+380	Maastricht Airport	1906-01-01	2026-01-06
+391	Arcen	1990-06-18	2025-09-30
+392	Horst	2025-01-23	2026-01-06
