@@ -2,6 +2,31 @@
 
 Simpele Python module om KNMI weerdata op te halen. Ondersteunt meerdere stations en kan gemiddeldes berekenen.
 
+## Dashboard — weather.siem.codes
+
+Er is een dashboard dat de volledige historie (voor De Bilt vanaf 1901) per station toont: temperatuur, neerslag, zonneschijn, luchtvochtigheid en wind, met datumbereik-presets, automatische aggregatie (dag/week/maand/jaar), stat-tegels, tabelweergave en CSV-export. De selectie staat in de URL, dus elke weergave is deelbaar als link.
+
+- **Code:** [`dashboard/`](dashboard/) (statische pagina, geen dependencies)
+- **Data:** [`scripts/build_data.py`](scripts/build_data.py) haalt via deze module de daggegevens op en schrijft compacte JSON per station naar `dashboard/data/`
+- **Deploy:** [`.github/workflows/deploy-dashboard.yml`](.github/workflows/deploy-dashboard.yml) bouwt de data dagelijks opnieuw (06:30 UTC) en publiceert naar GitHub Pages
+
+### Eenmalige setup voor weather.siem.codes
+
+1. **GitHub Pages aanzetten:** repo → Settings → Pages → Source: **GitHub Actions**.
+2. **DNS:** maak bij je DNS-provider een `CNAME` record aan: `weather.siem.codes` → `siemhoukes.github.io`.
+3. **Custom domain:** repo → Settings → Pages → Custom domain: `weather.siem.codes` (en vink "Enforce HTTPS" aan zodra het certificaat is uitgegeven). Het `dashboard/CNAME` bestand wordt al mee-gedeployed.
+4. Draai de workflow een keer handmatig (Actions → Deploy dashboard → Run workflow) of push naar `main`.
+
+### Lokaal draaien
+
+```bash
+pip install pandas requests
+python scripts/build_data.py          # schrijft dashboard/data/
+python -m http.server -d dashboard    # open http://localhost:8000
+```
+
+Ander station toevoegen? Voeg het toe aan `DASHBOARD_STATIONS` in `scripts/build_data.py` (zie `stations.txt` voor alle stations).
+
 ## Installatie
 
 ```bash
