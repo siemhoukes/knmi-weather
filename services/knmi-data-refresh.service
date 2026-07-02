@@ -6,5 +6,5 @@ After=network-online.target
 [Service]
 Type=oneshot
 User=sausje
-WorkingDirectory=/home/sausje/knmi-weather
-ExecStart=/home/sausje/knmi-weather/.venv/bin/python scripts/build_data.py
+WorkingDirectory=/home/sausje/personal/knmi
+ExecStart=/home/sausje/personal/knmi/.venv/bin/python scripts/build_data.py
