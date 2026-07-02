@@ -8,8 +8,8 @@ systemd timer ververst de data dagelijks, en cloudflared routeert
 
 ```bash
 ssh sausje@raspberrypi
-git clone https://github.com/siemhoukes/knmi-weather.git ~/knmi-weather
-cd ~/knmi-weather
+git clone https://github.com/siemhoukes/knmi-weather.git ~/personal/knmi
+cd ~/personal/knmi
 python3 -m venv .venv && .venv/bin/pip install pandas requests
 .venv/bin/python scripts/build_data.py     # vult dashboard/data/ (± 1 min)
 ```
@@ -31,7 +31,7 @@ systemctl list-timers knmi-data-refresh.timer --no-pager   # check volgende run
 server {
     listen 8093;
     server_name weather.siem.codes;
-    root /home/sausje/knmi-weather/dashboard;
+    root /home/sausje/personal/knmi/dashboard;
     index index.html;
     gzip on;
     gzip_types application/json text/html;
@@ -67,7 +67,7 @@ Daarna is https://weather.siem.codes live.
 ## Updaten na een code-wijziging
 
 ```bash
-ssh sausje@raspberrypi "cd ~/knmi-weather && git pull --ff-only && sudo systemctl start knmi-data-refresh.service"
+ssh sausje@raspberrypi "cd ~/personal/knmi && git pull --ff-only && sudo systemctl start knmi-data-refresh.service"
 ```
 
 (Geen app-restart nodig — de site is statisch.)
