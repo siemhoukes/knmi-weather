@@ -1,0 +1,10 @@
+[Unit]
+Description=Rebuild KNMI dashboard data (dashboard/data/*.json)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=sausje
+WorkingDirectory=/home/sausje/knmi-weather
+ExecStart=/home/sausje/knmi-weather/.venv/bin/python scripts/build_data.py
