@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily rebuild of KNMI dashboard data
+
+[Timer]
+# KNMI publishes yesterday's daily data in the morning
+OnCalendar=*-*-* 08:30:00
+RandomizedDelaySec=10m
+Persistent=true
+
+[Install]
+WantedBy=timers.target
