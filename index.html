@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KNMI Weer — siem.codes</title>
+<style>
+  :root {
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --axis: #c3c2b7;
+    --border: rgba(11,11,11,0.10);
+    --accent: #2a78d6;
+    --c-temp-avg: #2a78d6;
+    --c-temp-min: #1baf7a;
+    --c-temp-max: #e34948;
+    --c-precip: #4a3aa7;
+    --c-sun: #eda100;
+    --c-hum: #008300;
+    --c-wind: #eb6834;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --ink: #ffffff;
+      --ink-2: #c3c2b7;
+      --muted: #898781;
+      --grid: #2c2c2a;
+      --axis: #383835;
+      --border: rgba(255,255,255,0.10);
+      --accent: #3987e5;
+      --c-temp-avg: #3987e5;
+      --c-temp-min: #199e70;
+      --c-temp-max: #e66767;
+      --c-precip: #9085e9;
+      --c-sun: #c98500;
+      --c-hum: #008300;
+      --c-wind: #d95926;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--ink);
+    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 20px 16px 40px; }
+  header { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  header h1 { font-size: 20px; font-weight: 650; margin: 0; }
+  header .sub { color: var(--muted); font-size: 13px; }
+
+  .filters {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    padding: 10px 12px; margin-bottom: 14px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  }
+  .filters label.lbl { color: var(--ink-2); font-size: 12px; margin-right: -4px; }
+  select, input[type="date"], button {
+    font: inherit; color: var(--ink);
+    background: var(--surface); border: 1px solid var(--border); border-radius: 7px;
+    padding: 5px 9px;
+  }
+  select:focus-visible, input:focus-visible, button:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 1px;
+  }
+  button { cursor: pointer; }
+  button:hover { background: color-mix(in srgb, var(--ink) 5%, var(--surface)); }
+  .presets { display: flex; gap: 0; border: 1px solid var(--border); border-radius: 7px; overflow: hidden; }
+  .presets button { border: 0; border-radius: 0; padding: 5px 11px; color: var(--ink-2); }
+  .presets button + button { border-left: 1px solid var(--border); }
+  .presets button[aria-pressed="true"] { background: color-mix(in srgb, var(--accent) 14%, var(--surface)); color: var(--ink); font-weight: 600; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips label {
+    display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+    border: 1px solid var(--border); border-radius: 999px; padding: 4px 11px 4px 9px;
+    color: var(--ink-2); user-select: none;
+  }
+  .chips label:has(input:checked) { color: var(--ink); background: color-mix(in srgb, var(--chip) 12%, var(--surface)); border-color: color-mix(in srgb, var(--chip) 45%, var(--border)); }
+  .chips input { position: absolute; opacity: 0; pointer-events: none; }
+  .chips .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--chip); flex: none; opacity: .35; }
+  .chips label:has(input:checked) .dot { opacity: 1; }
+  .spacer { flex: 1; }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 14px; }
+  .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+  .tile .label { color: var(--ink-2); font-size: 12px; }
+  .tile .value { font-size: 26px; font-weight: 600; margin: 2px 0 0; }
+  .tile .value small { font-size: 15px; font-weight: 500; color: var(--ink-2); }
+  .tile .note { color: var(--muted); font-size: 12px; margin-top: 1px; min-height: 18px; }
+
+  .charts { display: flex; flex-direction: column; gap: 12px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px 8px; }
+  .card h2 { font-size: 13px; font-weight: 600; margin: 0 0 2px; color: var(--ink-2); }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); margin: 2px 0 4px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 14px; height: 0; border-top: 2.5px solid var(--k); border-radius: 2px; }
+  .plot { position: relative; }
+  .plot canvas { display: block; width: 100%; height: 100%; touch-action: pan-y; }
+  .tooltip {
+    position: absolute; pointer-events: none; z-index: 5; display: none;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.15); padding: 7px 10px; font-size: 12px; min-width: 130px;
+  }
+  .tooltip .tt-date { color: var(--ink-2); margin-bottom: 3px; }
+  .tooltip .tt-row { display: flex; align-items: center; gap: 7px; }
+  .tooltip .tt-row i { width: 12px; height: 0; border-top: 2.5px solid var(--k); border-radius: 2px; flex: none; }
+  .tooltip .tt-row b { font-weight: 600; }
+  .tooltip .tt-row span { color: var(--ink-2); }
+
+  .toolbar { display: flex; gap: 8px; align-items: center; margin: 14px 0 0; }
+  .toolbar .status { color: var(--muted); font-size: 12px; margin-left: auto; }
+  .tablewrap { display: none; margin-top: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: auto; max-height: 420px; }
+  .tablewrap.open { display: block; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { text-align: right; padding: 5px 12px; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  thead th { position: sticky; top: 0; background: var(--surface); color: var(--ink-2); font-weight: 600; }
+  .tnote { color: var(--muted); font-size: 12px; padding: 6px 12px; }
+
+  main.loading .tiles, main.loading .charts, main.loading .tablewrap { opacity: .45; pointer-events: none; transition: opacity .15s; }
+  .msg { padding: 40px 0; text-align: center; color: var(--muted); }
+  footer { margin-top: 22px; color: var(--muted); font-size: 12px; }
+  footer a { color: var(--ink-2); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>KNMI Weer</h1>
+    <span class="sub">historische weerdata per station · siem.codes</span>
+  </header>
+
+  <div class="filters" id="filters">
+    <label class="lbl" for="station">Station</label>
+    <select id="station" aria-label="Weerstation"></select>
+
+    <div class="presets" id="presets" role="group" aria-label="Periode">
+      <button data-preset="1">1J</button>
+      <button data-preset="5">5J</button>
+      <button data-preset="10">10J</button>
+      <button data-preset="30">30J</button>
+      <button data-preset="all">Alles</button>
+    </div>
+
+    <input type="date" id="from" aria-label="Vanaf">
+    <span style="color:var(--muted)">–</span>
+    <input type="date" id="to" aria-label="Tot en met">
+
+    <label class="lbl" for="agg">Interval</label>
+    <select id="agg" aria-label="Aggregatie">
+      <option value="auto">Auto</option>
+      <option value="day">Dag</option>
+      <option value="week">Week</option>
+      <option value="month">Maand</option>
+      <option value="year">Jaar</option>
+    </select>
+
+    <span class="spacer"></span>
+    <div class="chips" id="chips" role="group" aria-label="Variabelen"></div>
+  </div>
+
+  <main id="main">
+    <div class="tiles" id="tiles"></div>
+    <div class="charts" id="charts"></div>
+    <div class="toolbar">
+      <button id="tablebtn" aria-expanded="false">Tabel tonen</button>
+      <button id="csvbtn">Download CSV</button>
+      <span class="status" id="status"></span>
+    </div>
+    <div class="tablewrap" id="tablewrap"></div>
+  </main>
+
+  <footer>
+    Bron: <a href="https://www.knmi.nl/nederland-nu/klimatologie/daggegevens" rel="noopener">KNMI daggegevens</a> ·
+    data wordt dagelijks ververst ·
+    <a href="https://github.com/siemhoukes/knmi-weather" rel="noopener">siemhoukes/knmi-weather</a>
+  </footer>
+</div>
+
+<script>
+"use strict";
+const DAY = 86400000;
+
+const VARS = [
+  { key: "temp_avg",      label: "Gem. temperatuur",  unit: "°C",  group: "temp",   agg: "mean", color: "--c-temp-avg", on: true  },
+  { key: "temp_min",      label: "Min. temperatuur",  unit: "°C",  group: "temp",   agg: "min",  color: "--c-temp-min", on: true  },
+  { key: "temp_max",      label: "Max. temperatuur",  unit: "°C",  group: "temp",   agg: "max",  color: "--c-temp-max", on: true  },
+  { key: "precipitation", label: "Neerslag",          unit: "mm",  group: "precip", agg: "sum",  color: "--c-precip",   on: true  },
+  { key: "sun_duration",  label: "Zonneschijn",       unit: "uur", group: "sun",    agg: "sum",  color: "--c-sun",      on: false },
+  { key: "humidity",      label: "Luchtvochtigheid",  unit: "%",   group: "hum",    agg: "mean", color: "--c-hum",      on: false },
+  { key: "wind_speed",    label: "Wind",              unit: "m/s", group: "wind",   agg: "mean", color: "--c-wind",     on: false },
+];
+const GROUPS = {
+  temp:   { title: "Temperatuur",      unit: "°C",  zero: false },
+  precip: { title: "Neerslag",         unit: "mm",  zero: true, fill: true },
+  sun:    { title: "Zonneschijn",      unit: "uur", zero: true, fill: true },
+  hum:    { title: "Luchtvochtigheid", unit: "%",   zero: false },
+  wind:   { title: "Windsnelheid",     unit: "m/s", zero: true },
+};
+const AGG_NAME = { day: "dag", week: "week", month: "maand", year: "jaar" };
+
+const state = {
+  index: null,
+  stationId: null,
+  data: null,          // loaded station json
+  t0: 0,               // ms of data start (UTC)
+  from: null, to: null, // ms, inclusive
+  agg: "auto",
+  vars: new Set(VARS.filter(v => v.on).map(v => v.key)),
+  preset: "10",
+  buckets: [],         // aggregated rows: {t, label, vals:{key:number|null}}
+  bucketMode: "day",
+  hoverIdx: null,
+};
+const cache = new Map();
+const $ = id => document.getElementById(id);
+const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+const MONTHS = ["jan","feb","mrt","apr","mei","jun","jul","aug","sep","okt","nov","dec"];
+const MONTHS_FULL = ["januari","februari","maart","april","mei","juni","juli","augustus","september","oktober","november","december"];
+const fmtNum = (v, dec = 1) => v == null ? "–" : v.toLocaleString("nl-NL", { minimumFractionDigits: dec, maximumFractionDigits: dec });
+const fmtDate = ms => { const d = new Date(ms); return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`; };
+const isoDate = ms => new Date(ms).toISOString().slice(0, 10);
+const parseISO = s => { const t = Date.parse(s + "T00:00:00Z"); return Number.isNaN(t) ? null : t; };
+
+function bucketLabel(t, mode) {
+  const d = new Date(t);
+  if (mode === "day") return fmtDate(t);
+  if (mode === "week") return `week van ${fmtDate(t)}`;
+  if (mode === "month") return `${MONTHS_FULL[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+  return String(d.getUTCFullYear());
+}
+function bucketStart(t, mode) {
+  const d = new Date(t);
+  if (mode === "day") return t;
+  if (mode === "week") return t - ((d.getUTCDay() + 6) % 7) * DAY;
+  if (mode === "month") return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1);
+  return Date.UTC(d.getUTCFullYear(), 0, 1);
+}
+
+// ---------- data ----------
+async function loadIndex() {
+  const res = await fetch("data/index.json");
+  if (!res.ok) throw new Error("index.json niet gevonden");
+  state.index = await res.json();
+  const sel = $("station");
+  for (const s of state.index.stations) {
+    const o = document.createElement("option");
+    o.value = s.id;
+    o.textContent = `${s.name} (${s.id})`;
+    sel.appendChild(o);
+  }
+}
+async function loadStation(id) {
+  if (!cache.has(id)) {
+    const res = await fetch(`data/daily_${id}.json`);
+    if (!res.ok) throw new Error(`data voor station ${id} niet gevonden`);
+    cache.set(id, await res.json());
+  }
+  state.data = cache.get(id);
+  state.stationId = id;
+  state.t0 = parseISO(state.data.start);
+}
+
+// ---------- aggregation ----------
+function autoMode(days) {
+  if (days <= 400) return "day";
+  if (days <= 1900) return "week";
+  if (days <= 15000) return "month";
+  return "year";
+}
+function aggregate() {
+  const { data, t0 } = state;
+  const i0 = Math.max(0, Math.round((state.from - t0) / DAY));
+  const i1 = Math.min(data.n - 1, Math.round((state.to - t0) / DAY));
+  const mode = state.agg === "auto" ? autoMode(i1 - i0 + 1) : state.agg;
+  state.bucketMode = mode;
+
+  const rows = [];
+  let cur = null;
+  const keys = VARS.map(v => v.key).filter(k => data.series[k]);
+  for (let i = i0; i <= i1; i++) {
+    const t = t0 + i * DAY;
+    const bs = bucketStart(t, mode);
+    if (!cur || cur.t !== bs) {
+      cur = { t: bs, days: 0, acc: {} };
+      for (const k of keys) cur.acc[k] = { sum: 0, n: 0, min: Infinity, max: -Infinity };
+      rows.push(cur);
+    }
+    cur.days++;
+    for (const k of keys) {
+      const v = data.series[k][i];
+      if (v == null) continue;
+      const a = cur.acc[k];
+      a.sum += v; a.n++;
+      if (v < a.min) a.min = v;
+      if (v > a.max) a.max = v;
+    }
+  }
+  // Flag edge buckets that don't span their full period (e.g. the current,
+  // half-finished year) so sums/means aren't read as comparable.
+  const expectedDays = t => {
+    if (mode === "day") return 1;
+    if (mode === "week") return 7;
+    const d = new Date(t);
+    if (mode === "month") return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+    return (Date.UTC(d.getUTCFullYear() + 1, 0, 1) - t) / DAY;
+  };
+  for (const r of [rows[0], rows[rows.length - 1]]) {
+    if (r && r.days < expectedDays(r.t)) r.partial = true;
+  }
+  state.buckets = rows.map(r => {
+    const vals = {};
+    for (const v of VARS) {
+      const a = r.acc[v.key];
+      if (!a || a.n === 0) { vals[v.key] = null; continue; }
+      vals[v.key] = v.agg === "sum" ? a.sum
+                  : v.agg === "min" ? a.min
+                  : v.agg === "max" ? a.max
+                  : a.sum / a.n;
+    }
+    return { t: r.t, label: bucketLabel(r.t, mode) + (r.partial ? " · onvolledig" : ""), vals };
+  });
+}
+
+// ---------- stat tiles ----------
+function tile(label, valueHTML, note) {
+  const el = document.createElement("div");
+  el.className = "tile";
+  const l = document.createElement("div"); l.className = "label"; l.textContent = label;
+  const v = document.createElement("div"); v.className = "value"; v.innerHTML = valueHTML;
+  const n = document.createElement("div"); n.className = "note"; n.textContent = note || "";
+  el.append(l, v, n);
+  return el;
+}
+function renderTiles() {
+  const { data, t0 } = state;
+  const i0 = Math.max(0, Math.round((state.from - t0) / DAY));
+  const i1 = Math.min(data.n - 1, Math.round((state.to - t0) / DAY));
+  const S = data.series;
+  let sum = 0, n = 0, rain = 0, rainN = 0;
+  let hi = -Infinity, hiT = null, lo = Infinity, loT = null;
+  for (let i = i0; i <= i1; i++) {
+    const tg = S.temp_avg?.[i];
+    if (tg != null) { sum += tg; n++; }
+    const tx = S.temp_max?.[i];
+    if (tx != null && tx > hi) { hi = tx; hiT = t0 + i * DAY; }
+    const tn = S.temp_min?.[i];
+    if (tn != null && tn < lo) { lo = tn; loT = t0 + i * DAY; }
+    const rh = S.precipitation?.[i];
+    if (rh != null) { rain += Math.max(0, rh); rainN++; }
+  }
+  const days = i1 - i0 + 1;
+  const cont = $("tiles");
+  cont.replaceChildren(
+    tile("Gemiddelde temperatuur", n ? `${fmtNum(sum / n)} <small>°C</small>` : "–", `${days.toLocaleString("nl-NL")} dagen`),
+    tile("Warmste dag", hiT != null ? `${fmtNum(hi)} <small>°C</small>` : "–", hiT != null ? fmtDate(hiT) : ""),
+    tile("Koudste dag", loT != null ? `${fmtNum(lo)} <small>°C</small>` : "–", loT != null ? fmtDate(loT) : ""),
+    tile("Neerslag totaal", rainN ? `${(rain).toLocaleString("nl-NL", { maximumFractionDigits: 0 })} <small>mm</small>` : "–",
+         rainN && days > 500 ? `≈ ${(rain / days * 365.25).toLocaleString("nl-NL", { maximumFractionDigits: 0 })} mm/jaar` : ""),
+  );
+}
+
+// ---------- charts ----------
+const chartRefs = new Map(); // group -> {canvas, tooltip, series}
+
+function niceTicks(lo, hi, count) {
+  if (lo === hi) { lo -= 1; hi += 1; }
+  const span = hi - lo;
+  const mag = Math.pow(10, Math.floor(Math.log10(span / count)));
+  let step = mag, bestDiff = Infinity;
+  for (const m of [1, 2, 2.5, 5, 10]) {
+    const diff = Math.abs(span / (m * mag) - count);
+    if (diff < bestDiff) { bestDiff = diff; step = m * mag; }
+  }
+  const ticks = [];
+  for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) ticks.push(Math.round(v * 1000) / 1000 || 0);
+  return { ticks, dec: step < 1 ? 1 : 0 };
+}
+function xTicks(tMin, tMax) {
+  const span = tMax - tMin;
+  const years = span / (365.25 * DAY);
+  const ticks = [];
+  if (years >= 1.8) {
+    const step = Math.max(1, Math.ceil(years / 8));
+    const y0 = new Date(tMin).getUTCFullYear();
+    for (let y = Math.ceil(y0 / step) * step; ; y += step) {
+      const t = Date.UTC(y, 0, 1);
+      if (t > tMax) break;
+      if (t >= tMin) ticks.push({ t, label: String(y) });
+    }
+  } else if (span >= 100 * DAY) {
+    const d0 = new Date(tMin);
+    const stepM = span > 500 * DAY ? 3 : 1;
+    for (let y = d0.getUTCFullYear(), m = d0.getUTCMonth(); ; m += stepM) {
+      const t = Date.UTC(y, m, 1);
+      if (t > tMax) break;
+      if (t >= tMin) {
+        const d = new Date(t);
+        ticks.push({ t, label: d.getUTCMonth() === 0 ? String(d.getUTCFullYear()) : MONTHS[d.getUTCMonth()] });
+      }
+    }
+  } else {
+    const stepD = span > 40 * DAY ? 14 : span > 12 * DAY ? 7 : span > 4 * DAY ? 2 : 1;
+    for (let t = bucketStart(tMin, "week"); t <= tMax; t += stepD * DAY) {
+      if (t >= tMin) { const d = new Date(t); ticks.push({ t, label: `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}` }); }
+    }
+  }
+  return ticks;
+}
+
+function unitLabel(group) {
+  const g = GROUPS[group];
+  const per = AGG_NAME[state.bucketMode];
+  if (g.fill && state.bucketMode !== "day") return `${g.unit} per ${per}`;
+  if (g.fill) return `${g.unit} per dag`;
+  return g.unit;
+}
+
+function buildCharts() {
+  const cont = $("charts");
+  cont.replaceChildren();
+  chartRefs.clear();
+  const activeGroups = Object.keys(GROUPS).filter(g => VARS.some(v => v.group === g && state.vars.has(v.key)));
+  if (!activeGroups.length) {
+    const m = document.createElement("div");
+    m.className = "msg";
+    m.textContent = "Selecteer minstens één variabele.";
+    cont.appendChild(m);
+    return;
+  }
+  for (const g of activeGroups) {
+    const series = VARS.filter(v => v.group === g && state.vars.has(v.key));
+    const card = document.createElement("div");
+    card.className = "card";
+    const h = document.createElement("h2");
+    h.textContent = `${GROUPS[g].title} (${unitLabel(g)})`;
+    card.appendChild(h);
+    if (series.length > 1) {
+      const leg = document.createElement("div");
+      leg.className = "legend";
+      for (const s of series) {
+        const sp = document.createElement("span");
+        const i = document.createElement("i");
+        i.style.setProperty("--k", css(s.color));
+        sp.append(i, document.createTextNode(s.label));
+        leg.appendChild(sp);
+      }
+      card.appendChild(leg);
+    }
+    const plot = document.createElement("div");
+    plot.className = "plot";
+    plot.style.height = (series.length > 1 ? 260 : 170) + "px";
+    const canvas = document.createElement("canvas");
+    const tt = document.createElement("div");
+    tt.className = "tooltip";
+    plot.append(canvas, tt);
+    card.appendChild(plot);
+    cont.appendChild(card);
+    chartRefs.set(g, { canvas, tooltip: tt, series, plot });
+    canvas.addEventListener("pointermove", e => onHover(e, g));
+    canvas.addEventListener("pointerleave", () => { state.hoverIdx = null; drawAll(); hideTooltips(); });
+  }
+}
+
+function drawChart(g, ref) {
+  const { canvas, series } = ref;
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.clientWidth, H = canvas.clientHeight;
+  if (canvas.width !== W * dpr || canvas.height !== H * dpr) { canvas.width = W * dpr; canvas.height = H * dpr; }
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  const B = state.buckets;
+  if (!B.length) return;
+
+  const mL = 46, mR = 10, mT = 8, mB = 22;
+  const pw = W - mL - mR, ph = H - mT - mB;
+  const tMin = B[0].t, tMax = B[B.length - 1].t;
+  const xOf = t => tMax === tMin ? mL + pw / 2 : mL + (t - tMin) / (tMax - tMin) * pw;
+
+  let lo = Infinity, hi = -Infinity;
+  for (const b of B) for (const s of series) {
+    const v = b.vals[s.key];
+    if (v != null) { if (v < lo) lo = v; if (v > hi) hi = v; }
+  }
+  if (lo === Infinity) { lo = 0; hi = 1; }
+  if (GROUPS[g].zero) lo = Math.min(0, lo);
+  const pad = (hi - lo) * 0.08 || 1;
+  lo -= GROUPS[g].zero && lo === 0 ? 0 : pad;
+  hi += pad;
+  const yOf = v => mT + ph - (v - lo) / (hi - lo) * ph;
+
+  // gridlines + y labels
+  const yt = niceTicks(lo, hi, Math.max(3, Math.round(ph / 55)));
+  ctx.strokeStyle = css("--grid");
+  ctx.fillStyle = css("--muted");
+  ctx.lineWidth = 1;
+  ctx.font = "11px system-ui, sans-serif";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+  for (const v of yt.ticks) {
+    const y = Math.round(yOf(v)) + 0.5;
+    ctx.beginPath(); ctx.moveTo(mL, y); ctx.lineTo(W - mR, y); ctx.stroke();
+    ctx.fillText(fmtNum(v, yt.dec), mL - 7, y);
+  }
+  // x ticks
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  for (const t of xTicks(tMin, tMax)) ctx.fillText(t.label, xOf(t.t), mT + ph + 6);
+  // baseline
+  ctx.strokeStyle = css("--axis");
+  ctx.beginPath(); ctx.moveTo(mL, mT + ph + 0.5); ctx.lineTo(W - mR, mT + ph + 0.5); ctx.stroke();
+
+  // series
+  for (const s of series) {
+    const color = css(s.color);
+    if (GROUPS[g].fill && series.length === 1) {
+      ctx.globalAlpha = 0.1;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      let started = false, lastX = null;
+      for (const b of B) {
+        const v = b.vals[s.key];
+        if (v == null) continue;
+        const x = xOf(b.t), y = yOf(v);
+        if (!started) { ctx.moveTo(x, yOf(Math.max(0, lo))); ctx.lineTo(x, y); started = true; }
+        else ctx.lineTo(x, y);
+        lastX = x;
+      }
+      if (started) { ctx.lineTo(lastX, yOf(Math.max(0, lo))); ctx.closePath(); ctx.fill(); }
+      ctx.globalAlpha = 1;
+    }
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    let pen = false;
+    for (const b of B) {
+      const v = b.vals[s.key];
+      if (v == null) { pen = false; continue; }
+      const x = xOf(b.t), y = yOf(v);
+      if (pen) ctx.lineTo(x, y); else { ctx.moveTo(x, y); pen = true; }
+    }
+    ctx.stroke();
+  }
+
+  // crosshair + markers
+  if (state.hoverIdx != null && state.hoverIdx < B.length) {
+    const b = B[state.hoverIdx];
+    const x = Math.round(xOf(b.t)) + 0.5;
+    ctx.strokeStyle = css("--axis");
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x, mT); ctx.lineTo(x, mT + ph); ctx.stroke();
+    for (const s of series) {
+      const v = b.vals[s.key];
+      if (v == null) continue;
+      const y = yOf(v);
+      ctx.beginPath(); ctx.arc(x - 0.5, y, 6.5, 0, 7); ctx.fillStyle = css("--surface"); ctx.fill();
+      ctx.beginPath(); ctx.arc(x - 0.5, y, 4.5, 0, 7); ctx.fillStyle = css(s.color); ctx.fill();
+    }
+  }
+  ref.xOf = xOf;
+  ref.geom = { mL, mR, W };
+}
+
+function drawAll() { for (const [g, ref] of chartRefs) drawChart(g, ref); }
+function hideTooltips() { for (const ref of chartRefs.values()) ref.tooltip.style.display = "none"; }
+
+function onHover(e, g) {
+  const B = state.buckets;
+  if (!B.length) return;
+  const ref = chartRefs.get(g);
+  const rect = ref.canvas.getBoundingClientRect();
+  const px = e.clientX - rect.left;
+  const { mL, mR, W } = ref.geom || { mL: 46, mR: 10, W: rect.width };
+  const frac = Math.min(1, Math.max(0, (px - mL) / (W - mL - mR)));
+  const tMin = B[0].t, tMax = B[B.length - 1].t;
+  const target = tMin + frac * (tMax - tMin);
+  let best = 0, bd = Infinity;
+  for (let i = 0; i < B.length; i++) {
+    const d = Math.abs(B[i].t - target);
+    if (d < bd) { bd = d; best = i; } else if (B[i].t > target) break;
+  }
+  state.hoverIdx = best;
+  drawAll();
+  hideTooltips();
+  const b = B[best];
+  const tt = ref.tooltip;
+  tt.replaceChildren();
+  const dt = document.createElement("div");
+  dt.className = "tt-date";
+  dt.textContent = b.label;
+  tt.appendChild(dt);
+  for (const s of ref.series) {
+    const row = document.createElement("div");
+    row.className = "tt-row";
+    const i = document.createElement("i");
+    i.style.setProperty("--k", css(s.color));
+    const val = document.createElement("b");
+    val.textContent = b.vals[s.key] == null ? "–" : `${fmtNum(b.vals[s.key])} ${GROUPS[g].unit}`;
+    const lab = document.createElement("span");
+    lab.textContent = s.label;
+    row.append(i, val, lab);
+    tt.appendChild(row);
+  }
+  tt.style.display = "block";
+  const x = ref.xOf ? ref.xOf(b.t) : px;
+  const flip = x > rect.width - 170;
+  tt.style.left = flip ? "" : (x + 14) + "px";
+  tt.style.right = flip ? (rect.width - x + 14) + "px" : "";
+  tt.style.top = "10px";
+}
+
+// ---------- table & csv ----------
+function activeVars() { return VARS.filter(v => state.vars.has(v.key)); }
+function renderTable() {
+  const wrap = $("tablewrap");
+  if (!wrap.classList.contains("open")) return;
+  const vars = activeVars();
+  const tbl = document.createElement("table");
+  const thead = document.createElement("thead");
+  const hr = document.createElement("tr");
+  const th0 = document.createElement("th");
+  th0.textContent = "Periode";
+  hr.appendChild(th0);
+  for (const v of vars) {
+    const th = document.createElement("th");
+    th.textContent = `${v.label} (${v.unit})`;
+    hr.appendChild(th);
+  }
+  thead.appendChild(hr);
+  tbl.appendChild(thead);
+  const tbody = document.createElement("tbody");
+  const MAXROWS = 600;
+  const rows = state.buckets.slice(-MAXROWS);
+  for (const b of rows) {
+    const tr = document.createElement("tr");
+    const td0 = document.createElement("td");
+    td0.textContent = b.label;
+    tr.appendChild(td0);
+    for (const v of vars) {
+      const td = document.createElement("td");
+      td.textContent = fmtNum(b.vals[v.key]);
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  }
+  tbl.appendChild(tbody);
+  wrap.replaceChildren(tbl);
+  if (state.buckets.length > MAXROWS) {
+    const note = document.createElement("div");
+    note.className = "tnote";
+    note.textContent = `Laatste ${MAXROWS} van ${state.buckets.length.toLocaleString("nl-NL")} rijen — download de CSV voor alles.`;
+    wrap.prepend(note);
+  }
+}
+function downloadCSV() {
+  const vars = activeVars();
+  const head = ["periode", ...vars.map(v => `${v.key}_${v.unit.replace("°", "")}`)].join(";");
+  const lines = state.buckets.map(b =>
+    [isoDate(b.t), ...vars.map(v => b.vals[v.key] == null ? "" : String(b.vals[v.key].toFixed(1)).replace(".", ","))].join(";"));
+  const blob = new Blob(["﻿" + [head, ...lines].join("\r\n")], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `knmi_${state.stationId}_${isoDate(state.from)}_${isoDate(state.to)}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ---------- state & wiring ----------
+function clampRange() {
+  const t0 = state.t0, t1 = parseISO(state.data.end);
+  state.from = Math.max(t0, Math.min(state.from ?? t0, t1));
+  state.to = Math.max(state.from, Math.min(state.to ?? t1, t1));
+}
+function applyPreset(p) {
+  const t1 = parseISO(state.data.end);
+  state.preset = p;
+  state.to = t1;
+  state.from = p === "all" ? state.t0 : Math.max(state.t0, Date.UTC(new Date(t1).getUTCFullYear() - Number(p), new Date(t1).getUTCMonth(), new Date(t1).getUTCDate()) + DAY);
+}
+function syncControls() {
+  $("station").value = state.stationId;
+  $("from").value = isoDate(state.from);
+  $("to").value = isoDate(state.to);
+  $("from").min = $("to").min = state.data.start;
+  $("from").max = $("to").max = state.data.end;
+  $("agg").value = state.agg;
+  for (const b of $("presets").querySelectorAll("button"))
+    b.setAttribute("aria-pressed", String(b.dataset.preset === state.preset));
+}
+function writeHash() {
+  const h = new URLSearchParams({
+    station: state.stationId,
+    from: isoDate(state.from),
+    to: isoDate(state.to),
+    agg: state.agg,
+    vars: [...state.vars].join(","),
+  });
+  history.replaceState(null, "", "#" + h.toString());
+}
+function readHash() {
+  if (!location.hash.length) return {};
+  const h = new URLSearchParams(location.hash.slice(1));
+  return {
+    station: h.get("station"),
+    from: h.get("from") ? parseISO(h.get("from")) : null,
+    to: h.get("to") ? parseISO(h.get("to")) : null,
+    agg: h.get("agg"),
+    vars: h.get("vars") ? h.get("vars").split(",").filter(k => VARS.some(v => v.key === k)) : null,
+  };
+}
+
+function rerender() {
+  clampRange();
+  aggregate();
+  syncControls();
+  renderTiles();
+  buildCharts();
+  drawAll();
+  renderTable();
+  const n = state.buckets.length;
+  $("status").textContent = `${state.data.name} · ${fmtDate(state.from)} – ${fmtDate(state.to)} · ${n.toLocaleString("nl-NL")} punten per ${AGG_NAME[state.bucketMode]}`;
+  writeHash();
+}
+
+async function switchStation(id, keepRange = true) {
+  $("main").classList.add("loading");
+  try {
+    await loadStation(id);
+    if (!keepRange || state.from == null) applyPreset(state.preset);
+    rerender();
+  } catch (e) {
+    $("charts").replaceChildren(Object.assign(document.createElement("div"), { className: "msg", textContent: "Kon data niet laden: " + e.message }));
+  } finally {
+    $("main").classList.remove("loading");
+  }
+}
+
+function buildChips() {
+  const cont = $("chips");
+  for (const v of VARS) {
+    const label = document.createElement("label");
+    label.style.setProperty("--chip", css(v.color));
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.dataset.key = v.key;
+    input.checked = state.vars.has(v.key);
+    input.addEventListener("change", () => {
+      input.checked ? state.vars.add(v.key) : state.vars.delete(v.key);
+      rerender();
+    });
+    const dot = document.createElement("span");
+    dot.className = "dot";
+    label.append(input, dot, document.createTextNode(v.label));
+    cont.appendChild(label);
+  }
+}
+
+async function init() {
+  buildChips();
+  try {
+    await loadIndex();
+  } catch (e) {
+    $("main").replaceChildren(Object.assign(document.createElement("div"), { className: "msg", textContent: "Geen data gevonden — draai eerst scripts/build_data.py. (" + e.message + ")" }));
+    return;
+  }
+  const h = readHash();
+  if (h.vars) {
+    state.vars = new Set(h.vars);
+    for (const el of $("chips").querySelectorAll("input")) el.checked = state.vars.has(el.dataset.key);
+  }
+  if (h.agg && ["auto", "day", "week", "month", "year"].includes(h.agg)) state.agg = h.agg;
+  const stations = state.index.stations;
+  const id = h.station && stations.some(s => s.id === h.station) ? h.station : (stations.find(s => s.id === "260") || stations[0]).id;
+  await loadStation(id);
+  if (h.from && h.to) { state.from = h.from; state.to = h.to; state.preset = ""; }
+  else applyPreset(state.preset);
+  rerender();
+
+  $("station").addEventListener("change", e => switchStation(e.target.value));
+  $("presets").addEventListener("click", e => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    applyPreset(b.dataset.preset);
+    rerender();
+  });
+  $("from").addEventListener("change", e => { const t = parseISO(e.target.value); if (t) { state.from = t; state.preset = ""; rerender(); } });
+  $("to").addEventListener("change", e => { const t = parseISO(e.target.value); if (t) { state.to = t; state.preset = ""; rerender(); } });
+  $("agg").addEventListener("change", e => { state.agg = e.target.value; rerender(); });
+  $("tablebtn").addEventListener("click", () => {
+    const w = $("tablewrap");
+    const open = w.classList.toggle("open");
+    $("tablebtn").textContent = open ? "Tabel verbergen" : "Tabel tonen";
+    $("tablebtn").setAttribute("aria-expanded", String(open));
+    renderTable();
+  });
+  $("csvbtn").addEventListener("click", downloadCSV);
+  window.addEventListener("resize", drawAll);
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => rerender());
+}
+init();
+</script>
+</body>
+</html>
