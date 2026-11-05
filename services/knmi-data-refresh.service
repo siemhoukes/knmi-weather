@@ -5,6 +5,6 @@ After=network-online.target
 
 [Service]
 Type=oneshot
-User=sausje
-WorkingDirectory=/home/sausje/personal/knmi
-ExecStart=/home/sausje/personal/knmi/.venv/bin/python scripts/build_data.py
+User=<pi-user>
+WorkingDirectory=/home/<pi-user>/personal/knmi
+ExecStart=/home/<pi-user>/personal/knmi/.venv/bin/python scripts/build_data.py

@@ -4,10 +4,13 @@ De dashboard-site is volledig statisch: nginx serveert `dashboard/`, een
 systemd timer ververst de data dagelijks, en cloudflared routeert
 `weather.siem.codes` naar nginx — zelfde patroon als de andere apps.
 
+Vervang `<pi-user>`, `<pi-host>` en `<poort>` hieronder door je eigen waarden
+(`<poort>`: een vrije lokale poort voor nginx).
+
 ## 1. Clone + data bouwen
 
 ```bash
-ssh sausje@raspberrypi
+ssh <pi-user>@<pi-host>
 git clone https://github.com/siemhoukes/knmi-weather.git ~/personal/knmi
 cd ~/personal/knmi
 python3 -m venv .venv && .venv/bin/pip install pandas requests
@@ -17,21 +20,22 @@ python3 -m venv .venv && .venv/bin/pip install pandas requests
 ## 2. Dagelijkse data-refresh (systemd timer)
 
 ```bash
-sudo cp services/knmi-data-refresh.{service,timer} /etc/systemd/system/
+sed "s|<pi-user>|$USER|g" services/knmi-data-refresh.service | sudo tee /etc/systemd/system/knmi-data-refresh.service >/dev/null
+sudo cp services/knmi-data-refresh.timer /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now knmi-data-refresh.timer
 systemctl list-timers knmi-data-refresh.timer --no-pager   # check volgende run
 ```
 
-## 3. Nginx (statisch, poort 8093)
+## 3. Nginx (statisch, lokale poort)
 
 `/etc/nginx/sites-available/knmi-weather`:
 
 ```nginx
 server {
-    listen 8093;
+    listen <poort>;
     server_name weather.siem.codes;
-    root /home/sausje/personal/knmi/dashboard;
+    root /home/<pi-user>/personal/knmi/dashboard;
     index index.html;
     gzip on;
     gzip_types application/json text/html;
@@ -44,7 +48,7 @@ server {
 ```bash
 sudo ln -s /etc/nginx/sites-available/knmi-weather /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
-curl -sS http://127.0.0.1:8093/ | head -3    # moet HTML geven
+curl -sS http://127.0.0.1:<poort>/ | head -3    # moet HTML geven
 ```
 
 ## 4. Cloudflare Tunnel
@@ -54,7 +58,7 @@ catch-all):
 
 ```yaml
   - hostname: weather.siem.codes
-    service: http://localhost:8093
+    service: http://localhost:<poort>
 ```
 
 ```bash
@@ -67,15 +71,16 @@ Daarna is https://weather.siem.codes live.
 ## Updaten na een code-wijziging
 
 ```bash
-ssh sausje@raspberrypi "cd ~/personal/knmi && git pull --ff-only && sudo systemctl start knmi-data-refresh.service"
+ssh <pi-user>@<pi-host> "cd ~/personal/knmi && git pull --ff-only && sudo systemctl start knmi-data-refresh.service"
 ```
 
 (Geen app-restart nodig — de site is statisch.)
 
 ## Alternatief: GitHub Pages
 
-De repo deployt dezelfde site ook automatisch naar GitHub Pages
-(`gh-pages` branch, dagelijks ververst door GitHub Actions). Wil je de Pi
-er niet tussen hebben, maak dan alleen een DNS record in Cloudflare:
+De repo kan dezelfde site ook naar GitHub Pages deployen (`gh-pages` branch,
+dagelijks ververst door GitHub Actions); die workflow staat nu uit, zet hem
+eerst weer aan. Wil je de Pi er niet tussen hebben, maak dan een DNS record in
+Cloudflare:
 `CNAME weather → siemhoukes.github.io` (DNS only). Gebruik één van de twee,
 niet allebei.
