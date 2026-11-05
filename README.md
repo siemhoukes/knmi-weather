@@ -2,20 +2,20 @@
 
 Simpele Python module om KNMI weerdata op te halen. Ondersteunt meerdere stations en kan gemiddeldes berekenen.
 
-## Dashboard — weather.siem.codes
+## Dashboard
 
 Er is een dashboard dat de volledige historie (voor De Bilt vanaf 1901) per station toont: temperatuur, neerslag, zonneschijn, luchtvochtigheid en wind, met datumbereik-presets, automatische aggregatie (dag/week/maand/jaar), stat-tegels, tabelweergave en CSV-export. De selectie staat in de URL, dus elke weergave is deelbaar als link.
 
 - **Code:** [`dashboard/`](dashboard/) (statische pagina, geen dependencies)
 - **Data:** [`scripts/build_data.py`](scripts/build_data.py) haalt via deze module de daggegevens op en schrijft compacte JSON per station naar `dashboard/data/`
-- **Deploy:** [`.github/workflows/deploy-dashboard.yml`](.github/workflows/deploy-dashboard.yml) bouwt de data dagelijks opnieuw (06:30 UTC) en publiceert de site naar de `gh-pages` branch (GitHub Pages)
+- **Deploy:** [`.github/workflows/deploy-dashboard.yml`](.github/workflows/deploy-dashboard.yml) kan de data dagelijks opnieuw bouwen (06:30 UTC) en de site naar de `gh-pages` branch publiceren (GitHub Pages). De workflow staat uit zolang de site niet online is.
 
-### weather.siem.codes live zetten
+### Online zetten (weather.siem.codes)
 
-Twee opties (kies er één):
+Het dashboard staat nog nergens online. Twee opties (kies er één):
 
 - **Op de Raspberry Pi** (zelfde patroon als de andere apps: nginx + systemd timer + Cloudflare Tunnel): zie [`DEPLOY-RBPI.md`](DEPLOY-RBPI.md).
-- **Via GitHub Pages:** de site staat al op de `gh-pages` branch en wordt dagelijks ververst. Maak in Cloudflare alleen een DNS record `CNAME weather → siemhoukes.github.io` (DNS only) en controleer repo → Settings → Pages (source: `gh-pages` branch, custom domain via het `CNAME` bestand, "Enforce HTTPS" aanvinken zodra het certificaat er is).
+- **Via GitHub Pages:** zet de workflow weer aan (repo → Actions → Deploy dashboard → Enable workflow) en start hem één keer; die maakt de `gh-pages` branch aan en ververst hem daarna dagelijks. Maak in Cloudflare een DNS record `CNAME weather → siemhoukes.github.io` (DNS only) en controleer repo → Settings → Pages (source: `gh-pages` branch, custom domain via het `CNAME` bestand, "Enforce HTTPS" aanvinken zodra het certificaat er is).
 
 ### Lokaal draaien
 
