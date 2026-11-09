@@ -8,14 +8,14 @@ Er is een dashboard dat de volledige historie (voor De Bilt vanaf 1901) per stat
 
 - **Code:** [`dashboard/`](dashboard/) (statische pagina, geen dependencies)
 - **Data:** [`scripts/build_data.py`](scripts/build_data.py) haalt via deze module de daggegevens op en schrijft compacte JSON per station naar `dashboard/data/`
-- **Deploy:** [`.github/workflows/deploy-dashboard.yml`](.github/workflows/deploy-dashboard.yml) kan de data dagelijks opnieuw bouwen (06:30 UTC) en de site naar de `gh-pages` branch publiceren (GitHub Pages). De workflow staat uit zolang de site niet online is.
+- **Deploy:** [`.github/workflows/deploy-dashboard.yml`](.github/workflows/deploy-dashboard.yml) kan de data dagelijks opnieuw bouwen (06:30 UTC) en de site naar de `gh-pages` branch publiceren (GitHub Pages). GitHub Actions staat voor deze repo uit zolang de site niet online is.
 
 ### Online zetten (weather.siem.codes)
 
 Het dashboard staat nog nergens online. Twee opties (kies er één):
 
 - **Op de Raspberry Pi** (zelfde patroon als de andere apps: nginx + systemd timer + Cloudflare Tunnel): zie [`DEPLOY-RBPI.md`](DEPLOY-RBPI.md).
-- **Via GitHub Pages:** zet de workflow weer aan (repo → Actions → Deploy dashboard → Enable workflow) en start hem één keer; die maakt de `gh-pages` branch aan en ververst hem daarna dagelijks. Maak in Cloudflare een DNS record `CNAME weather → siemhoukes.github.io` (DNS only) en controleer repo → Settings → Pages (source: `gh-pages` branch, custom domain via het `CNAME` bestand, "Enforce HTTPS" aanvinken zodra het certificaat er is).
+- **Via GitHub Pages:** zet eerst Actions aan (repo → Settings → Actions → General → "Allow all actions") en start daarna de workflow één keer (repo → Actions → Deploy dashboard → Run workflow); die maakt de `gh-pages` branch aan en ververst hem daarna dagelijks. Maak in Cloudflare een DNS record `CNAME weather → siemhoukes.github.io` (DNS only) en controleer repo → Settings → Pages (source: `gh-pages` branch, custom domain via het `CNAME` bestand, "Enforce HTTPS" aanvinken zodra het certificaat er is).
 
 ### Lokaal draaien
 

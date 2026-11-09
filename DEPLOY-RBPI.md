@@ -79,8 +79,8 @@ ssh <pi-user>@<pi-host> "cd ~/personal/knmi && git pull --ff-only && sudo system
 ## Alternatief: GitHub Pages
 
 De repo kan dezelfde site ook naar GitHub Pages deployen (`gh-pages` branch,
-dagelijks ververst door GitHub Actions); die workflow staat nu uit, zet hem
-eerst weer aan. Wil je de Pi er niet tussen hebben, maak dan een DNS record in
-Cloudflare:
+dagelijks ververst door GitHub Actions); Actions staat voor deze repo nu uit,
+zie de README om het aan te zetten. Wil je de Pi er niet tussen hebben, maak dan
+een DNS record in Cloudflare:
 `CNAME weather → siemhoukes.github.io` (DNS only). Gebruik één van de twee,
 niet allebei.
